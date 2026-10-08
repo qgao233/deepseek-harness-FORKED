@@ -18,14 +18,14 @@ import z from '@deepseek-ai/schemastery'
 import { scopeOf } from '@deepseek-ai/dsh-scope'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { DEFAULT_MAX_INSTRUCTION_BYTES, RECONNECT_DEFAULTS, resolveReconnectPolicy, startConnection } from './connection.ts'
-import type { ReconnectConfig } from './connection.ts'
+import type { ReconnectConfig, VersionNegotiationConfig } from './connection.ts'
 import { registerServerContext } from './server-context.ts'
 // Side-effect type import: declaration-merges `ctx.tools` onto Context.
 import type {} from '@deepseek-ai/dsh-tools'
 
 export { createMcpToolDefinition } from './tools.ts'
 export type { McpResult, McpToolDefinitionOptions } from './tools.ts'
-export type { ReconnectConfig, ResolvedReconnectPolicy } from './connection.ts'
+export type { ReconnectConfig, ResolvedReconnectPolicy, VersionNegotiationConfig, VersionNegotiationMode } from './connection.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'mcp-client'
@@ -74,6 +74,8 @@ export interface StdioConfig {
   maxInstructionBytes?: number
   /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
   reconnect?: ReconnectConfig
+  /** Protocol-era negotiation policy; omission uses the SDK's probe-and-fallback ('auto'). */
+  versionNegotiation?: VersionNegotiationConfig
 }
 
 /** Config for connecting to an MCP server over Streamable HTTP (SSE). */
@@ -98,6 +100,8 @@ export interface StreamableHttpConfig {
   maxInstructionBytes?: number
   /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
   reconnect?: ReconnectConfig
+  /** Protocol-era negotiation policy; omission uses the SDK's probe-and-fallback ('auto'). */
+  versionNegotiation?: VersionNegotiationConfig
 }
 
 /** Configuration for one stdio or Streamable HTTP MCP server. */
@@ -116,6 +120,17 @@ const Reconnect: z<ReconnectConfig> = z.object({
   maxAttempts: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(RECONNECT_DEFAULTS.maxAttempts),
 })
 
+/** MCP protocol revisions are ISO dates; the SDK rejects a pin outside the modern era at connect. */
+const PROTOCOL_REVISION_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+const VersionNegotiation: z<VersionNegotiationConfig> = z.object({
+  mode: z.union([
+    z.const('auto'),
+    z.const('legacy'),
+    z.object({ pin: z.string().required().pattern(PROTOCOL_REVISION_PATTERN) }),
+  ]).default('auto'),
+})
+
 export const Config = z.union([
   z.object({
     transport: z.const('stdio'),
@@ -128,6 +143,7 @@ export const Config = z.union([
     failOnStartupError: z.boolean().default(false),
     maxInstructionBytes: z.number().step(1).min(1).default(DEFAULT_MAX_INSTRUCTION_BYTES),
     reconnect: Reconnect,
+    versionNegotiation: VersionNegotiation,
   }),
   z.object({
     transport: z.const('streamable-http'),
@@ -138,6 +154,7 @@ export const Config = z.union([
     failOnStartupError: z.boolean().default(false),
     maxInstructionBytes: z.number().step(1).min(1).default(DEFAULT_MAX_INSTRUCTION_BYTES),
     reconnect: Reconnect,
+    versionNegotiation: VersionNegotiation,
   }),
 ]) as z<ConfigInput, Config>
 

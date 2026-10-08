@@ -14,7 +14,7 @@ import type { Config } from '@deepseek-ai/dsh-mcp-client'
 
 // vi.mock factories are hoisted above every import/const, so the mock fns and
 // class must be created inside vi.hoisted to exist when the factories run.
-const { mockConnect, mockClose, mockListTools, mockCallTool, mockSetNotificationHandler, MockClient } = vi.hoisted(() => {
+const { mockConnect, mockClose, mockListTools, mockCallTool, mockSetNotificationHandler, mockClientCtor, MockClient } = vi.hoisted(() => {
   const mockConnect = vi.fn<() => Promise<void>>()
   const mockClose = vi.fn<() => Promise<void>>()
   const mockListTools = vi.fn<(_params?: Record<string, unknown>) => Promise<unknown>>()
@@ -22,6 +22,7 @@ const { mockConnect, mockClose, mockListTools, mockCallTool, mockSetNotification
     _params?: Record<string, unknown>, _options?: unknown,
   ) => Promise<unknown>>()
   const mockSetNotificationHandler = vi.fn()
+  const mockClientCtor = vi.fn<(_options: unknown) => void>()
   class MockClient {
     transport = {}
     connect = mockConnect
@@ -29,12 +30,13 @@ const { mockConnect, mockClose, mockListTools, mockCallTool, mockSetNotification
     listTools = mockListTools
     callTool = mockCallTool
     constructor(_info: unknown, options: { listChanged: { tools: { onChanged: () => void } } }) {
+      mockClientCtor(options)
       mockSetNotificationHandler('notifications/tools/list_changed', options.listChanged.tools.onChanged)
     }
     getServerCapabilities = () => ({ tools: {} })
     getInstructions(): string | undefined { return undefined }
   }
-  return { mockConnect, mockClose, mockListTools, mockCallTool, mockSetNotificationHandler, MockClient }
+  return { mockConnect, mockClose, mockListTools, mockCallTool, mockSetNotificationHandler, mockClientCtor, MockClient }
 })
 
 vi.mock('@modelcontextprotocol/client', () => ({
@@ -145,6 +147,46 @@ describe('mcp-client plugin module exports', () => {
       reconnect: { maxAttempts: 0 },
     } as never)).toThrow()
   })
+
+  it('Config schema materializes versionNegotiation defaults and accepts each mode', () => {
+    const omitted = ConfigSchema({
+      transport: 'stdio',
+      serverName: 'srv',
+      command: 'echo',
+    } as never)
+    expect(omitted.versionNegotiation).toEqual({ mode: 'auto' })
+
+    const legacy = ConfigSchema({
+      transport: 'stdio',
+      serverName: 'srv',
+      command: 'echo',
+      versionNegotiation: { mode: 'legacy' },
+    } as never)
+    expect(legacy.versionNegotiation).toEqual({ mode: 'legacy' })
+
+    const pinned = ConfigSchema({
+      transport: 'stdio',
+      serverName: 'srv',
+      command: 'echo',
+      versionNegotiation: { mode: { pin: '2026-07-28' } },
+    } as never)
+    expect(pinned.versionNegotiation).toEqual({ mode: { pin: '2026-07-28' } })
+  })
+
+  it('Config schema rejects an invalid versionNegotiation mode or malformed pin', () => {
+    expect(() => ConfigSchema({
+      transport: 'stdio',
+      serverName: 'srv',
+      command: 'echo',
+      versionNegotiation: { mode: 'nope' },
+    } as never)).toThrow()
+    expect(() => ConfigSchema({
+      transport: 'stdio',
+      serverName: 'srv',
+      command: 'echo',
+      versionNegotiation: { mode: { pin: 'not-a-revision' } },
+    } as never)).toThrow()
+  })
 })
 
 describe('apply (plugin lifecycle)', () => {
@@ -190,6 +232,21 @@ describe('apply (plugin lifecycle)', () => {
     expect(ctx.tools.get('mcp__srv__remote')).toBeDefined()
     expect(ctx.tools.get('remote')).toBeUndefined()
   })
+
+  it.each([
+    [undefined, { mode: 'auto' }],
+    [{ mode: 'legacy' }, { mode: 'legacy' }],
+    [{ mode: { pin: '2026-07-28' } }, { mode: { pin: '2026-07-28' } }],
+  ] as const)(
+    'passes versionNegotiation %j to the SDK client as %j', async (negotiation, expected) => {
+      // exactOptionalPropertyTypes: omit the key entirely rather than set it to undefined.
+      await apply(ctx, { ...stdioConfig, ...(negotiation === undefined ? {} : { versionNegotiation: negotiation }) })
+      expect(mockClientCtor).toHaveBeenCalled()
+      const options = mockClientCtor.mock.calls.at(-1)?.[0] as { versionNegotiation?: unknown }
+      expect(options.versionNegotiation).toEqual(expected)
+      await ctx.fiber.dispose()
+    },
+  )
 
   it('keeps the Cordis plugin loading until initial discovery publishes its tools', async () => {
     const connection: PromiseWithResolvers<void> = Promise.withResolvers()

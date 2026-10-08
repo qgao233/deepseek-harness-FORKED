@@ -45,6 +45,30 @@ export const RECONNECT_DEFAULTS: Required<ReconnectConfig> = Object.freeze({
   maxAttempts: 10,
 })
 
+/** A modern protocol revision pinned at connect time; the probe must offer it, with no fallback. */
+export interface VersionNegotiationPin {
+  /** The exact modern revision to require, an MCP protocol date such as `'2026-07-28'`. */
+  pin: string
+}
+
+/**
+ * Protocol-era negotiation mode for one server; mirrors the SDK's
+ * `ClientOptions.versionNegotiation.mode`.
+ */
+export type VersionNegotiationMode = 'auto' | 'legacy' | VersionNegotiationPin
+
+/** Protocol-era negotiation policy for one MCP server connection. */
+export interface VersionNegotiationConfig {
+  /**
+   * `'auto'` (default) probes `server/discover` at connect and falls back to
+   * the legacy `initialize` handshake; `'legacy'` skips the probe — the remedy
+   * for legacy-era servers that answer the probe with an HTTP 5xx, which the
+   * SDK reads as a broken server rather than an old one; `{ pin }` requires
+   * the modern era at exactly the pinned revision, with no fallback.
+   */
+  mode?: VersionNegotiationMode
+}
+
 /** Default UTF-8 byte limit for attributed server instructions. */
 export const DEFAULT_MAX_INSTRUCTION_BYTES = 32_768
 
@@ -259,7 +283,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
       { name: 'dsh-mcp-client', version: '0.0.1' },
       {
         capabilities: {},
-        versionNegotiation: { mode: 'auto' },
+        versionNegotiation: { mode: config.versionNegotiation?.mode ?? 'auto' },
         listChanged: {
           tools: {
             autoRefresh: false,

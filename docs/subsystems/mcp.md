@@ -31,7 +31,7 @@ MCP servers are opt-in. Configure one `@deepseek-ai/dsh-mcp-client` entry per se
 | Server instruction size limit | Client `maxInstructionBytes`; the composition supplies [system-prompt assembly](system-prompt.md) |
 | Permission decisions and supported image output | [Tool execution](tools.md) and [attachments](attachment.md) |
 
-Protocol negotiation follows the SDK's supported revisions; there is no product setting that forces a protocol revision. The [configuration catalog](../config-catalog.md#deepseek-aidsh-mcp-client) lists accepted client fields and defaults.
+Protocol negotiation follows the SDK's supported revisions. Each client entry may set `versionNegotiation.mode` to `auto` (the default: probe `server/discover`, then fall back to the legacy handshake), `legacy` (plain handshake, for legacy-era servers that answer the probe with an HTTP 5xx), or a pinned modern revision; there is no global product setting. The [configuration catalog](../config-catalog.md#deepseek-aidsh-mcp-client) lists accepted client fields and defaults.
 
 -----
 

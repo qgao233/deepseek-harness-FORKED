@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-08-mcp-per-server-version-negotiation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-10-08-mcp-per-server-version-negotiation.md
+/agent-note-per-server-mcp-protocol-era-negotiation-mode:
+  en: 0b0c34bf1593be90
+  zh: a47f891381cde584
+/agent-note-per-server-mcp-protocol-era-negotiation-mode/problem:
+  en: 022d444442320923
+  zh: 0366f8513e9e330a
+/agent-note-per-server-mcp-protocol-era-negotiation-mode/decision:
+  en: e23f132592714a51
+  zh: 2b17717e9239f14f
+/agent-note-per-server-mcp-protocol-era-negotiation-mode/alternatives-considered:
+  en: 538b05ece85dc7d2
+  zh: 0b977ebef76bb0f0
+/agent-note-per-server-mcp-protocol-era-negotiation-mode/consequences:
+  en: b21bd235c4daa2dd
+  zh: 715b9d8826998f40

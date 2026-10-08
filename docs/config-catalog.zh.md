@@ -2024,7 +2024,7 @@ export interface LspLocalServerConfig {
 ## `@deepseek-ai/dsh-mcp-client`
 
 - `inject`: `tools`
-- `source`: [`packages/mcp/mcp-client/src/index.ts:104`](../packages/mcp/mcp-client/src/index.ts)
+- `source`: [`packages/mcp/mcp-client/src/index.ts:108`](../packages/mcp/mcp-client/src/index.ts)
 
 ```ts config-catalog
 /** Configuration for one stdio or Streamable HTTP MCP server. */
@@ -2056,6 +2056,8 @@ export interface StdioConfig {
   maxInstructionBytes?: number
   /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
   reconnect?: ReconnectConfig
+  /** Protocol-era negotiation policy; omission uses the SDK's probe-and-fallback ('auto'). */
+  versionNegotiation?: VersionNegotiationConfig
 }
 
 /** Config for connecting to an MCP server over Streamable HTTP (SSE). */
@@ -2080,6 +2082,8 @@ export interface StreamableHttpConfig {
   maxInstructionBytes?: number
   /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
   reconnect?: ReconnectConfig
+  /** Protocol-era negotiation policy; omission uses the SDK's probe-and-fallback ('auto'). */
+  versionNegotiation?: VersionNegotiationConfig
 }
 
 /** Automatic reconnect policy for one MCP server connection. */
@@ -2092,6 +2096,30 @@ export interface ReconnectConfig {
   maxDelayMs?: number
   /** Consecutive failed attempts per outage before giving up for good (default 10). */
   maxAttempts?: number
+}
+
+/** Protocol-era negotiation policy for one MCP server connection. */
+export interface VersionNegotiationConfig {
+  /**
+   * `'auto'` (default) probes `server/discover` at connect and falls back to
+   * the legacy `initialize` handshake; `'legacy'` skips the probe — the remedy
+   * for legacy-era servers that answer the probe with an HTTP 5xx, which the
+   * SDK reads as a broken server rather than an old one; `{ pin }` requires
+   * the modern era at exactly the pinned revision, with no fallback.
+   */
+  mode?: VersionNegotiationMode
+}
+
+/**
+ * Protocol-era negotiation mode for one server; mirrors the SDK's
+ * `ClientOptions.versionNegotiation.mode`.
+ */
+export type VersionNegotiationMode = 'auto' | 'legacy' | VersionNegotiationPin
+
+/** A modern protocol revision pinned at connect time; the probe must offer it, with no fallback. */
+export interface VersionNegotiationPin {
+  /** The exact modern revision to require, an MCP protocol date such as `'2026-07-28'`. */
+  pin: string
 }
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-mcp-client -->

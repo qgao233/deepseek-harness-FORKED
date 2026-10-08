@@ -25,7 +25,7 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Add `dsh-mcp-client` when the model should call tools from an external MCP server as if they were native. Give each server a unique name and transport. The official SDK selects the 2026-07-28 protocol when available and falls back to supported legacy revisions. Choose stdio for a local program and Streamable HTTP for a service; stdio negotiation starts a temporary probe process before the serving process.
+Add `dsh-mcp-client` when the model should call tools from an external MCP server as if they were native. Give each server a unique name and transport. The official SDK selects the 2026-07-28 protocol when available and falls back to supported legacy revisions; a legacy-era server that answers the connect probe with an HTTP 5xx never reaches that fallback, so set `versionNegotiation.mode: legacy` for that entry. Choose stdio for a local program and Streamable HTTP for a service; stdio negotiation starts a temporary probe process before the serving process.
 
 ### Minimal configuration
 
@@ -65,6 +65,7 @@ Add one entry per server; nothing else is required. After the harness starts, th
 | `reconnect.initialDelayMs` | `500` | First reconnect delay; doubles per consecutive failed attempt |
 | `reconnect.maxDelayMs` | `30,000` | Backoff ceiling; also the uptime after which the attempt budget resets |
 | `reconnect.maxAttempts` | `10` | Consecutive failed attempts per outage before giving up |
+| `versionNegotiation.mode` | `auto` | Protocol-era negotiation: `auto` probes `server/discover` and falls back to the legacy handshake; `legacy` skips the probe (for legacy-era servers that answer the probe with HTTP 5xx); `{ pin: '<revision>' }` requires one exact modern revision |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-mcp-client) is the exhaustive source for every accepted field.
 

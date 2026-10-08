@@ -31,7 +31,7 @@ MCP 服务器需要主动配置。在目标 Cordis 作用域中，为每台服�
 | 服务器指令大小限制 | 客户端 `maxInstructionBytes`；组合提供[系统提示词装配](system-prompt.zh.md) |
 | 权限决策和受支持的图像输出 | [工具执行](tools.zh.md)和[附件](attachment.zh.md) |
 
-协议协商遵循 SDK 支持的修订版；产品没有强制指定协议修订版的设置。[配置目录](../config-catalog.zh.md#deepseek-aidsh-mcp-client) 列出客户端接受的字段和默认值。
+协议协商遵循 SDK 支持的修订版。每条客户端配置可用 `versionNegotiation.mode` 选择 `auto`（默认：先探测 `server/discover`，再回退到旧版握手）、`legacy`（仅旧版握手，适用于对探测返回 HTTP 5xx 的旧时代服务器）或固定的现代修订版；不存在全局产品设置。[配置目录](../config-catalog.zh.md#deepseek-aidsh-mcp-client) 列出客户端接受的字段和默认值。
 
 -----
 

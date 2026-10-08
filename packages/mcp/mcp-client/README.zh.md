@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-当模型需要像调用原生工具一样调用外部 MCP 服务器时，添加 `dsh-mcp-client`。为每台服务器指定唯一名称和传输方式。官方 SDK 优先选择可用的 2026-07-28 协议，并回退到支持的旧版协议。本地程序使用 stdio，远端服务使用 Streamable HTTP；stdio 协商会先启动临时探测进程，再启动实际服务进程。
+当模型需要像调用原生工具一样调用外部 MCP 服务器时，添加 `dsh-mcp-client`。为每台服务器指定唯一名称和传输方式。官方 SDK 优先选择可用的 2026-07-28 协议，并回退到支持的旧版协议；对连接探测返回 HTTP 5xx 的旧时代服务器永远走不到该回退，需为其配置 `versionNegotiation.mode: legacy`。本地程序使用 stdio，远端服务使用 Streamable HTTP；stdio 协商会先启动临时探测进程，再启动实际服务进程。
 
 ### 最小配置
 
@@ -65,6 +65,7 @@ kind: "package-reference"
 | `reconnect.initialDelayMs` | `500` | 首次重连延迟；每次连续失败尝试翻倍 |
 | `reconnect.maxDelayMs` | `30,000` | 退避上限；同时是重置尝试预算所需的正常运行时长 |
 | `reconnect.maxAttempts` | `10` | 每次中断内连续失败尝试次数上限，超出后放弃 |
+| `versionNegotiation.mode` | `auto` | 协议时代协商：`auto` 先探测 `server/discover` 并回退到旧版握手；`legacy` 跳过探测（适用于对探测返回 HTTP 5xx 的旧时代服务器）；`{ pin: '<revision>' }` 要求恰好为指定的现代修订版 |
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-mcp-client)是每个受支持字段的穷尽式真源。
 
